@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tic Tac Toe</title>
+  <style>
+    body {
+      display: flex;
+    }
+    #panel {
+      font-size: 0;
+      margin-right: 16px;
+    }
+    .item {
+      width: 100px;
+      height: 100px;
+      border: 1px solid #fff;
+      background-color: cadetblue;
+      display: inline-block;
+      box-sizing: border-box;
+      text-align: center;
+      line-height: 100px;
+      font-size: 50px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  
+  <div id="panel"></div>
+  <div><span id="label">Next Player: </span><span id="player"></span></div>
+
+  <script type="module">
+    import { generatePatterns, delegate, color, color_val_symbol } from './constant.js';
+    const patterns = generatePatterns(3)
+    const panel = document.getElementById('panel')
+    const label = document.getElementById('label')
+    const player = document.getElementById('player')
+    let isOver = false;
+
+    function setNextPlayer() {
+      player.textContent = 
+        color.value === 1 ? '❌' :
+        color.value === 2 ? '⭕️' : '';
+    }
+    Object.defineProperty(color, 'value', {
+      get() {
+        return color[color_val_symbol];
+      },
+      set(val) {
+        color[color_val_symbol] = val
+        setNextPlayer()
+      }
+    })
+
+    // start
+    setNextPlayer()
+    draw()
+
+    delegate(panel, '.item', 'click', (event) => {
+      if (isOver) return
+      const index = event.target.getAttribute('data-index')
+      const [i, j] = index.split('-')
+      if (patterns[i][j] !== 0) return
+      patterns[i][j] = color.value
+      if (checkWin(color.value)) {
+        isOver = true
+        label.textContent = 'Winner: '
+        setNextPlayer()
+      } else {
+        color.value = 3 - color.value
+      }
+      draw()
+    })
+
+    function draw() {
+      panel.innerHTML = ''
+      const frag = document.createDocumentFragment()
+      const br = document.createElement('br')
+      for (let i = 0; i < patterns.length; i ++) {
+        for (let j = 0; j < patterns[i].length; j ++) {
+          const div = document.createElement('div')
+          div.classList.add('item')
+          div.setAttribute('data-index', `${i}-${j}`)
+          frag.append(div)
+          div.innerHTML = 
+            patterns[i][j] === 1 ? '❌' :
+            patterns[i][j] === 2 ? '⭕️' : '';
+        }
+        frag.append(br.cloneNode())
+      }
+      panel.append(frag)
+    }
+
+    function checkWin(color) {
+      let win
+      for (let i = 0; i < patterns.length; i ++) {
+        win = true
+        for (let j = 0; j < patterns[i].length; j ++) {
+          if (patterns[i][j] !== color) {
+            win = false
+          }
+        }
+        if (win) {
+          return true
+        }
+      }
+
+      for (let i = 0; i < patterns.length; i ++) {
+        win = true
+        for (let j = 0; j < patterns[i].length; j ++) {
+          if (patterns[j][i] !== color) {
+            win = false
+          }
+        }
+        if (win) {
+          return true
+        }
+      }
+
+      win = true
+      for (let i = 0; i < patterns.length; i ++) {
+        for (let j = 0; j < patterns[i].length; j ++) {
+          if (i === j && patterns[i][j] !== color) {
+            win = false
+          }
+        }
+      }
+      if (win) {
+        return true
+      }
+
+      win = true
+      for (let i = 0; i < patterns.length; i ++) {
+        for (let j = 0; j < patterns[i].length; j ++) {
+          if (i + j === patterns.length - 1 && patterns[i][j] !== color) {
+            return false
+          }
+        }
+      }
+      if (win) {
+        return true
+      }
+    }
+  </script>
+</body>
+</html>
