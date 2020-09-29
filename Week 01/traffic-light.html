@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>红绿灯</title>
+  <style>
+    :root {
+      --red: red;
+      --yellow: yellow;
+      --green: green;
+    }
+    .red {
+      background-color: var(--red);
+    }
+    .yellow {
+      background-color: var(--yellow);
+    }
+    .green {
+      background-color: var(--green);
+    }
+    #light {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      border: 3px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+  <div id="light"></div>
+
+  <script>
+    const light = document.getElementById('light')
+    const ONE_SECOND = 1000
+    function startRed(next) {
+      light.className = 'red'
+      delay(5 * ONE_SECOND).then(() => {
+        next(startGreen)
+      })
+    }
+    function startYellow(next) {
+      light.className = 'yellow'
+      delay(2 * ONE_SECOND).then(() => {
+        next(startRed)
+      })
+    }
+    function startGreen(next) {
+      light.className = 'green'
+      delay(10 * ONE_SECOND).then(() => {
+        next(startYellow)
+      })
+    }
+    function workLoop(fn) {
+      fn(workLoop)
+    }
+    function delay(time) {
+      return new Promise(resolve => {
+        setTimeout(resolve, time)
+      })
+    }
+
+    // start
+    workLoop(startGreen)
+
+  </script>
+</body>
+</html>
