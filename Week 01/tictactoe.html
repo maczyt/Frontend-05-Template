@@ -64,14 +64,17 @@
       const [i, j] = index.split('-')
       if (patterns[i][j] !== 0) return
       patterns[i][j] = color.value
-      if (checkWin(color.value)) {
-        isOver = true
+      if (checkWin(patterns, color.value)) {
+        isOver = true // 游戏结束
         label.textContent = 'Winner: '
         setNextPlayer()
       } else {
         color.value = 3 - color.value
       }
       draw()
+      if (willWin(patterns, color.value)) {
+        console.log((color.value === 1 ? '❌' : '⭕️') + ' will win')
+      }
     })
 
     function draw() {
@@ -93,7 +96,7 @@
       panel.append(frag)
     }
 
-    function checkWin(color) {
+    function checkWin(patterns, color) {
       let win
       for (let i = 0; i < patterns.length; i ++) {
         win = true
@@ -141,6 +144,23 @@
       }
       if (win) {
         return true
+      }
+    }
+
+    function clone(obj) {
+      return JSON.parse(JSON.stringify(obj))
+    }
+    function willWin(patterns, color) {
+      for (let i = 0; i < patterns.length; i ++) {
+        for (let j = 0; j < patterns[i].length; j ++) {
+          if (patterns[i][j]) continue
+
+          const tmp = clone(patterns)
+          tmp[i][j] = color
+          if (checkWin(tmp, color)) {
+            return true
+          }
+        }
       }
     }
   </script>
