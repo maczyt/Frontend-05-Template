@@ -29,7 +29,7 @@
 </head>
 <body>
   <div id="light"></div>
-
+  <button>CLICK ME</button>
   <script>
     const light = document.getElementById('light')
     const ONE_SECOND = 1000
@@ -61,7 +61,22 @@
     }
 
     // start
-    workLoop(startGreen)
+    // workLoop(startGreen)
+
+    function ok(yield) {
+      light.className = 'green'
+      yield delay(10 * ONE_SECOND)
+      light.className = 'yellow'
+      yield delay(2 * ONE_SECOND)
+      light.className = 'red'
+      yield delay(5 * ONE_SECOND) 
+    }
+    async function start() {
+      for await (fn of g()) {
+        console.log('fn', fn)
+      }
+    }
+    // start()
 
   </script>
 </body>

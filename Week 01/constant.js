@@ -1,5 +1,5 @@
 export function generatePatterns(num) {
-  return Array.from({ length: num }, () => Array(num).fill(0))
+  return Array.from({ length: num * num }, () => 0)
 }
 
 export function delegate(container, target, eventName, callback) {

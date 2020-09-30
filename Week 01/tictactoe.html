@@ -33,7 +33,8 @@
 
   <script type="module">
     import { generatePatterns, delegate, color, color_val_symbol } from './constant.js';
-    const patterns = generatePatterns(3)
+    const Num = 3
+    const patterns = generatePatterns(Num)
     const panel = document.getElementById('panel')
     const label = document.getElementById('label')
     const player = document.getElementById('player')
@@ -61,9 +62,8 @@
     delegate(panel, '.item', 'click', (event) => {
       if (isOver) return
       const index = event.target.getAttribute('data-index')
-      const [i, j] = index.split('-')
-      if (patterns[i][j] !== 0) return
-      patterns[i][j] = color.value
+      if (patterns[index] !== 0) return
+      patterns[index] = color.value
       if (checkWin(patterns, color.value)) {
         isOver = true // 游戏结束
         label.textContent = 'Winner: '
@@ -81,15 +81,16 @@
       panel.innerHTML = ''
       const frag = document.createDocumentFragment()
       const br = document.createElement('br')
-      for (let i = 0; i < patterns.length; i ++) {
-        for (let j = 0; j < patterns[i].length; j ++) {
+      for (let i = 0; i < Num; i ++) {
+        for (let j = 0; j < Num; j ++) {
           const div = document.createElement('div')
+          const index = i * Num + j
           div.classList.add('item')
-          div.setAttribute('data-index', `${i}-${j}`)
+          div.setAttribute('data-index', index)
           frag.append(div)
           div.innerHTML = 
-            patterns[i][j] === 1 ? '❌' :
-            patterns[i][j] === 2 ? '⭕️' : '';
+            patterns[index] === 1 ? '❌' :
+            patterns[index] === 2 ? '⭕️' : '';
         }
         frag.append(br.cloneNode())
       }
@@ -97,11 +98,10 @@
     }
 
     function checkWin(patterns, color) {
-      let win
-      for (let i = 0; i < patterns.length; i ++) {
-        win = true
-        for (let j = 0; j < patterns[i].length; j ++) {
-          if (patterns[i][j] !== color) {
+      for (let i = 0; i < Num; i ++) {
+        let win = true
+        for (let j = 0; j < Num; j ++) {
+          if (patterns[i * Num + j] !== color) {
             win = false
           }
         }
@@ -110,10 +110,10 @@
         }
       }
 
-      for (let i = 0; i < patterns.length; i ++) {
-        win = true
-        for (let j = 0; j < patterns[i].length; j ++) {
-          if (patterns[j][i] !== color) {
+      for (let i = 0; i < Num; i ++) {
+        let win = true
+        for (let j = 0; j < Num; j ++) {
+          if (patterns[Num * j + i] !== color) {
             win = false
           }
         }
@@ -122,44 +122,41 @@
         }
       }
 
-      win = true
-      for (let i = 0; i < patterns.length; i ++) {
-        for (let j = 0; j < patterns[i].length; j ++) {
-          if (i === j && patterns[i][j] !== color) {
+      {
+        let win = true
+        for (let i = 0; i < Num; i ++) {
+          if (patterns[i * Num + 2 - i] !== color) {
             win = false
           }
         }
-      }
-      if (win) {
-        return true
-      }
-
-      win = true
-      for (let i = 0; i < patterns.length; i ++) {
-        for (let j = 0; j < patterns[i].length; j ++) {
-          if (i + j === patterns.length - 1 && patterns[i][j] !== color) {
-            return false
-          }
+        if (win) {
+          return true
         }
       }
-      if (win) {
-        return true
+
+      {
+        let win = true
+        for (let i = 0; i < Num; i ++) {
+          if (patterns[2 * (Num - i)] !== color) {
+            win = false
+          }
+        }
+        if (win) {
+          return true
+        }
       }
     }
 
     function clone(obj) {
-      return JSON.parse(JSON.stringify(obj))
+      return Object.create(obj)
     }
     function willWin(patterns, color) {
-      for (let i = 0; i < patterns.length; i ++) {
-        for (let j = 0; j < patterns[i].length; j ++) {
-          if (patterns[i][j]) continue
-
-          const tmp = clone(patterns)
-          tmp[i][j] = color
-          if (checkWin(tmp, color)) {
-            return true
-          }
+      for (let i = 0; i < Num * Num; i ++) {
+        if (patterns[i]) continue
+        const tmp = clone(patterns)
+        tmp[i] = color
+        if (checkWin(tmp, color)) {
+          return true
         }
       }
     }
