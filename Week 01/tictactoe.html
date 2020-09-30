@@ -63,6 +63,15 @@
       if (isOver) return
       const index = event.target.getAttribute('data-index')
       if (patterns[index] !== 0) return
+      userMove(index)
+
+      console.log(bestChoice(patterns, color.value))
+      if (willWin(patterns, color.value)) {
+        console.log((color.value === 1 ? '❌' : '⭕️') + ' will win')
+      }
+    })
+
+    function userMove(index) {
       patterns[index] = color.value
       if (checkWin(patterns, color.value)) {
         isOver = true // 游戏结束
@@ -72,10 +81,22 @@
         color.value = 3 - color.value
       }
       draw()
-      if (willWin(patterns, color.value)) {
-        console.log((color.value === 1 ? '❌' : '⭕️') + ' will win')
+      computerMove()
+    }
+    function computerMove() {
+      const choice = bestChoice(patterns, color.value)
+      if (choice.point) {
+        patterns[choice.point[0]] = color.value
       }
-    })
+      if (checkWin(patterns, color.value)) {
+        isOver = true // 游戏结束
+        label.textContent = 'Winner: '
+        setNextPlayer()
+      } else {
+        color.value = 3 - color.value
+      }
+      draw()
+    }
 
     function draw() {
       panel.innerHTML = ''
@@ -156,8 +177,42 @@
         const tmp = clone(patterns)
         tmp[i] = color
         if (checkWin(tmp, color)) {
-          return true
+          return [i]
         }
+      }
+      return null
+    }
+
+    // result: 
+    // 1: win
+    // -1: lose
+    // 0: pin
+    function bestChoice(patterns, color) {
+      let p
+      if (p = willWin(patterns, color)) {
+        return {
+          point: p,
+          result: 1,
+        }
+      }
+      let result = -2
+      let point = null
+      for (let i = 0; i < Num * Num; i ++) {
+        if (patterns[i]) continue
+        let tmp = clone(patterns)
+        tmp[i] = color
+        let r = bestChoice(tmp, 3 - color).result
+        if (-r > result) {
+          result = -r
+          point = [i]
+        }
+        if (result === 1) {
+          break 
+        }
+      }
+      return {
+        point: point,
+        result: point ? result : 0,
       }
     }
   </script>
