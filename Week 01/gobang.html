@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>五子棋</title>
+  <style>
+    #stage {
+      display: flex;
+      flex-wrap: wrap;
+      width: 600px;
+    }
+    .cell {
+      width: calc(100% / 25);
+      flex: 1 1 calc(100% / 25);
+      border: 1px solid #fff;
+      box-sizing: border-box;
+      position: relative;
+    }
+    .cell::before {
+      content: '';
+      width: 100%;
+      height: 0;
+      padding-bottom: 100%;
+      background-color: cadetblue;
+      display: block;
+    }
+    .cell > span {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+  </style>
+</head>
+<body>
+  <div id="stage"></div>
+
+  <script type="module">
+    import { generatePatterns, delegate, color, color_val_symbol, clone } from './constant.js';
+
+    const Num = 25
+    const patterns = generatePatterns(Num)
+    const stage = document.getElementById('stage')
+
+    function draw() {
+      stage.innerHTML = ''
+      let div = document.createElement('div')
+      div.classList.add('cell')
+      let content = document.createElement('span')
+      let frag = document.createDocumentFragment()
+      for (let i = 0; i < Num; i ++) {
+        for (let j = 0; j < Num; j ++) {
+          let cell = div.cloneNode()
+          let cellContent = content.cloneNode()
+          cellContent.textContent = 
+            patterns[i * Num + j] === 1 ? '⚪️' :
+            patterns[i * Num + j] === 2 ? '⚫️' : ''
+          cell.appendChild(cellContent)
+          cell.setAttribute('data-index', i * Num + j)
+          frag.append(cell)
+        }
+        frag.append(document.createElement('br'))
+      }
+      stage.append(frag)
+    }
+
+    Object.defineProperty(color, 'value', {
+      get() {
+        return color[color_val_symbol];
+      },
+      set(val) {
+        color[color_val_symbol] = val
+      }
+    })
+    // 白棋：1 
+    // 黑棋：2
+    let isOver = false
+    delegate(stage, '.cell', 'click', (event) => {
+      if (isOver) return
+      const index = event.target.getAttribute('data-index')
+      if (patterns[index] !== 0) return
+      
+      userMove(index)
+      // if (willWin(patterns, color.value)) {
+      //   console.log((color.value === 1 ? '白棋' : '黑棋') + ' will win')
+      // }
+    })
+
+    function userMove(index) {
+      patterns[index] = color.value
+      if (checkWin(patterns, color.value)) {
+        isOver = true // 游戏结束
+      } else {
+        color.value = 3 - color.value
+      }
+      draw()
+      computerMove()
+    }
+
+    function computerMove() {
+      const choice = bestChoice(patterns, color.value)
+      if (choice.point) {
+        patterns[choice.point[0]] = color.value
+      }
+      if (checkWin(patterns, color.value)) {
+        isOver = true // 游戏结束
+      } else {
+        color.value = 3 - color.value
+      }
+      draw()
+    }
+
+    // result: 
+    // 1 - 赢
+    // -1 - 输
+    // 0 - 平局
+    function bestChoice(patterns, color, step = 1) {
+      // 1. 能赢的节点
+      let p
+      if (p = willWin(patterns, color)) {
+        return {
+          point: p,
+          result: 1,
+        }
+      }
+
+      // 2. 别输的节点
+      let result = -2
+      let point = null
+      for (let i = 0; i < 3; i ++) {
+        let j = Math.floor(Math.random() * (Num * Num))
+        if (patterns[j]) continue
+        let tmp = clone(patterns)
+        tmp[j] = color
+        let r
+        if (step < 3) {
+          r = bestChoice(tmp, 3 - color, step + 1).result
+          if (-r > result) {
+            result = -r
+            point = [j]
+          }
+          if (result === 1) {
+            break 
+          }
+        } else {
+          result = 1
+          point = [j]
+          break
+        }
+      }
+      return {
+        point: point,
+        result: point ? result : 0,
+      }
+    }
+
+    /**
+     * 随机走一步，看下是否能赢
+     */ 
+    function willWin(patterns, color) {
+      for (let i = 0; i < Num * Num; i ++) {
+        if (patterns[i]) continue
+        const _patterns = clone(patterns)
+        _patterns[i] = color
+        if (checkWin(_patterns, color)) {
+          return [i]
+        }
+      }
+      return null
+    }
+
+
+    /**
+     * 判断输赢
+     */
+    function checkWin(patterns, color) {
+      // 行
+      for (let i = 0; i < Num; i ++) {
+        let num = 0
+        for (let j = 0; j < Num; j ++) {
+          if (num === 5) break
+          if (patterns[i * Num + j] === color) {
+            num ++
+          } else {
+            num = 0
+          }
+        }
+        if (num === 5) {
+          return true
+        }
+      }
+
+      // 列
+      for (let i = 0; i < Num; i ++) {
+        let num = 0
+        for (let j = 0; j < Num; j ++) {
+          if (num === 5) break
+          if (patterns[j * Num + i] === color) {
+            num ++
+          } else {
+            num = 0
+          }
+        }
+        if (num === 5) {
+          return true
+        }
+      }
+
+      // 上斜 1
+      {
+        for (let i = 0; i < Num; i ++) {
+          let num = 0
+          let c = i
+          let max = (Num - i - 1) * Num + (Num - 1)
+          while (c <= max) {
+            if (num === 5) break;
+            if (patterns[c] === color) {
+              num ++
+            } else {
+              num = 0
+            }
+            c += (Num + 1)
+          }
+          if (num === 5) {
+            return true
+          }
+        }
+      }
+      // 上斜 2
+      {
+        for (let i = 1; i < Num; i ++) {
+          let num = 0
+          let c = Num * i
+          let max = (Num - i - 1) + (Num - 1) * Num
+          while (c <= max) {
+            if (num === 5) break;
+            if (patterns[c] === color) {
+              num ++
+            } else {
+              num = 0
+            }
+            c += (Num + 1)
+          }
+          if (num === 5) {
+            return true
+          }
+        }
+      }
+      
+      // 下斜 1
+      {
+        for (let i = 0; i < Num; i ++) {
+          let num = 0
+          let c = (Num * (Num - 1)) + i
+          let min = (Num * Num - 1) - (Num - i - 1) * 25
+          while (c >= min) {
+            if (num === 5) break;
+            if (patterns[c] === color) {
+              num ++
+            } else {
+              num = 0
+            }
+            c -= (Num - 1)
+          }
+          if (num === 5) {
+            return true
+          }
+        }
+      }
+
+      // 下斜 2
+      {
+        for (let i = 1; i < Num; i ++) {
+          let num = 0
+          let c = (Num * (Num - 1)) - i * 25
+          let min = Num - i - 1
+          while (c >= min) {
+            if (num === 5) break;
+            if (patterns[c] === color) {
+              num ++
+            } else {
+              num = 0
+            }
+            c -= (Num - 1)
+          }
+          if (num === 5) {
+            return true
+          }
+        } 
+      }
+    }
+    // start
+    draw()
+  </script>
+</body>
+</html>

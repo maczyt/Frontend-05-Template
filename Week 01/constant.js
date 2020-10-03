@@ -13,3 +13,7 @@ export const color_val_symbol = Symbol('Color Value')
 export const color = {
   [color_val_symbol]: 1,
 }
+
+export function clone(arr) {
+  return Object.create(arr)
+}
