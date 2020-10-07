@@ -32,6 +32,7 @@
   <button id="reset">Reset</button>
 
   <script type="module">
+    import { delay } from '../utils/index.js'
     const container = document.querySelector('#container')
     const save = document.querySelector('#save')
     const reset = document.querySelector('#reset')
@@ -91,24 +92,28 @@
     })
     draw();
 
-    function path(map, start, end) {
+    async function path(map, start, end) {
       const queue = [start]
-      const insert = (x, y) => {
+      const insert = async (x, y) => {
         if (x < 0 || x >= NUM || y < 0 || y >= NUM) return
         if (map[x * NUM + y]) return
+        map[x * NUM + y] = 2
+        container.children[x * NUM + y].style.backgroundColor = 'orange'
         queue.push([x, y])
+        await delay(5)
       }
       while (queue.length) {
         const [x, y] = queue.shift()
         if (x === end[0] && y === end[1]) {
+          container.children[x * NUM + y].style.backgroundColor = '#0f0'
           return true
         }
         map[x * NUM + y] = 2
-        console.log([x, y])
-        insert(x, y - 1) // 上
-        insert(x, y + 1) // 下
-        insert(x - 1, y) // 左
-        insert(x + 1, y) // 右
+        container.children[x * NUM + y].style.backgroundColor = 'orange'
+        await insert(x, y - 1) // 上
+        await insert(x, y + 1) // 下
+        await insert(x - 1, y) // 左
+        await insert(x + 1, y) // 右
       }
     }
     window.map = datas
