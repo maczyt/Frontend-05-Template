@@ -94,27 +94,42 @@
 
     async function path(map, start, end) {
       const queue = [start]
-      const insert = async (x, y) => {
+      const tableMap = Object.create(map)
+      const insert = async (x, y, preNode) => {
         if (x < 0 || x >= NUM || y < 0 || y >= NUM) return
-        if (map[x * NUM + y]) return
-        map[x * NUM + y] = 2
+        if (tableMap[x * NUM + y]) return
+
+        tableMap[x * NUM + y] = preNode
         container.children[x * NUM + y].style.backgroundColor = 'orange'
         queue.push([x, y])
-        await delay(5)
       }
       while (queue.length) {
         const [x, y] = queue.shift()
         if (x === end[0] && y === end[1]) {
-          container.children[x * NUM + y].style.backgroundColor = '#0f0'
-          return true
+          const p = []
+          p.push([x, y])
+          let [_x, _y] = [x, y]
+          container.children[_x * NUM + _y].style.backgroundColor = 'purple'
+          while (typeof tableMap[_x * NUM + _y] === 'object') {
+            [_x, _y] = tableMap[_x * NUM + _y]
+            p.push([_x, _y])
+            container.children[_x * NUM + _y].style.backgroundColor = 'purple'
+            await delay(10)
+          }
+          return p
         }
-        map[x * NUM + y] = 2
-        container.children[x * NUM + y].style.backgroundColor = 'orange'
-        await insert(x, y - 1) // 上
-        await insert(x, y + 1) // 下
-        await insert(x - 1, y) // 左
-        await insert(x + 1, y) // 右
+        
+        await insert(x, y - 1, [x, y]) // 上
+        await insert(x, y + 1, [x, y]) // 下
+        await insert(x - 1, y, [x, y]) // 左
+        await insert(x + 1, y, [x, y]) // 右
+
+        await insert(x - 1, y - 1, [x, y]) // 上
+        await insert(x + 1, y - 1, [x, y]) // 下
+        await insert(x - 1, y + 1, [x, y]) // 左
+        await insert(x + 1, y + 1, [x, y]) // 右
       }
+      return null
     }
     window.map = datas
     window.path = path
