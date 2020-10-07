@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BFS - map</title>
+
+  <style>
+    body {
+      margin: 0;
+    }
+    #container {
+      display: flex;
+      flex-wrap: wrap;
+      width: 900px;
+      float: left;
+    }
+
+    .cell {
+      width: 9px;
+      height: 9px;
+      background-color: #ccc;
+      box-sizing: border-box;
+      border: 1px solid #fff;
+    }
+
+  </style>
+</head>
+<body>
+  <div id="container"></div>
+  <button id="save">Save</button>
+  <button id="reset">Reset</button>
+
+  <script type="module">
+    const container = document.querySelector('#container')
+    const save = document.querySelector('#save')
+    const reset = document.querySelector('#reset')
+    const NUM = 100
+    let mousedown = false
+    let clear = false
+
+    let datas = localStorage.getItem('map-edit-data')
+    datas = datas ? JSON.parse(datas) : Array.from({
+      length: NUM ** 2,
+    }, () => 0)
+    function handleCellMousemove(event) {
+      if (mousedown) {
+        
+        if (clear) {
+          datas[event.target.getAttribute('data-index')] = 0
+          event.target.style.backgroundColor = '#ccc'
+        } else {
+          datas[event.target.getAttribute('data-index')] = 1
+          event.target.style.backgroundColor = '#000'
+        }
+      }
+    }
+    container.addEventListener('mousemove', handleCellMousemove)
+    function draw() {
+      container.innerHTML = ''
+      const cell = document.createElement('div')
+      cell.classList.add('cell')
+      const frag = document.createDocumentFragment()
+      for (let i = 0; i < NUM; i ++) {
+        for (let j = 0; j < NUM; j ++) {
+          let _cell = cell.cloneNode()
+          _cell.setAttribute('data-index', NUM * i + j)
+          _cell.style.backgroundColor = datas[NUM * i + j] === 0 ? '#ccc' : '#000'
+          frag.append(_cell)
+        }
+      }
+      container.append(frag)
+    }
+
+    save.addEventListener('click', () => {
+      localStorage.setItem('map-edit-data', JSON.stringify(datas))
+    })
+    reset.addEventListener('click', () => {
+      localStorage.removeItem('map-edit-data')
+      location.reload()
+    })
+    document.addEventListener('mousedown', (event) => {
+      mousedown = true
+      clear = event.which === 3
+    })
+    document.addEventListener('mouseup', () => {
+      mousedown = false
+    })
+    document.addEventListener('contextmenu', (event) => {
+      event.preventDefault()
+    })
+    draw();
+
+    function path(map, start, end) {
+      const queue = [start]
+      const insert = (x, y) => {
+        if (x < 0 || x >= NUM || y < 0 || y >= NUM) return
+        if (map[x * NUM + y]) return
+        queue.push([x, y])
+      }
+      while (queue.length) {
+        const [x, y] = queue.shift()
+        if (x === end[0] && y === end[1]) {
+          return true
+        }
+        map[x * NUM + y] = 2
+        console.log([x, y])
+        insert(x, y - 1) // 上
+        insert(x, y + 1) // 下
+        insert(x - 1, y) // 左
+        insert(x + 1, y) // 右
+      }
+    }
+    window.map = datas
+    window.path = path
+  </script>
+</body>
+</html>
