@@ -47,7 +47,6 @@
     }, () => 0)
     function handleCellMousemove(event) {
       if (mousedown) {
-        
         if (clear) {
           datas[event.target.getAttribute('data-index')] = 0
           event.target.style.backgroundColor = '#ccc'
@@ -93,19 +92,25 @@
     })
     draw();
 
+
     async function path(map, start, end) {
-      const queue = [start]
+      const getDistance = (point) => {
+        return Math.pow(end[0] - point[0], 2) + Math.pow(end[1] - point[1], 2)
+      }
+      // 最小堆
+      const queue = new BinaryHeap((a, b) => getDistance(b) - getDistance(a))
+      queue.put(start)
       const tableMap = Object.create(map)
       const insert = async (x, y, preNode) => {
         if (x < 0 || x >= NUM || y < 0 || y >= NUM) return
         if (tableMap[x * NUM + y]) return
-
         tableMap[x * NUM + y] = preNode
         container.children[x * NUM + y].style.backgroundColor = 'orange'
-        queue.push([x, y])
+        queue.put([x, y])
+        await delay(10)
       }
       while (queue.length) {
-        const [x, y] = queue.shift()
+        const [x, y] = queue.take()
         if (x === end[0] && y === end[1]) {
           const p = []
           p.push([x, y])
@@ -134,15 +139,6 @@
     }
     window.map = datas
     window.path = path
-
-    window.bt = new BinaryHeap((a, b) => b - a)
-    bt.put(43)
-    bt.put(68)
-    bt.put(50)
-    bt.put(38)
-    bt.put(72)
-
-    console.log(bt.toString())
   </script>
 </body>
 </html>
