@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BFS - map - A*</title>
+
+  <style>
+    body {
+      margin: 0;
+    }
+    #container {
+      display: flex;
+      flex-wrap: wrap;
+      width: 900px;
+      float: left;
+    }
+
+    .cell {
+      width: 9px;
+      height: 9px;
+      background-color: #ccc;
+      box-sizing: border-box;
+      border: 1px solid #fff;
+    }
+
+  </style>
+</head>
+<body>
+  <div id="container"></div>
+  <button id="save">Save</button>
+  <button id="reset">Reset</button>
+
+  <script type="module">
+    import { delay } from '../utils/index.js'
+    import BinaryHeap from './BinaryHeap.js'
+    const container = document.querySelector('#container')
+    const save = document.querySelector('#save')
+    const reset = document.querySelector('#reset')
+    const NUM = 100
+    let mousedown = false
+    let clear = false
+
+    let datas = localStorage.getItem('map-edit-data')
+    datas = datas ? JSON.parse(datas) : Array.from({
+      length: NUM ** 2,
+    }, () => 0)
+    function handleCellMousemove(event) {
+      if (mousedown) {
+        
+        if (clear) {
+          datas[event.target.getAttribute('data-index')] = 0
+          event.target.style.backgroundColor = '#ccc'
+        } else {
+          datas[event.target.getAttribute('data-index')] = 1
+          event.target.style.backgroundColor = '#000'
+        }
+      }
+    }
+    container.addEventListener('mousemove', handleCellMousemove)
+    function draw() {
+      container.innerHTML = ''
+      const cell = document.createElement('div')
+      cell.classList.add('cell')
+      const frag = document.createDocumentFragment()
+      for (let i = 0; i < NUM; i ++) {
+        for (let j = 0; j < NUM; j ++) {
+          let _cell = cell.cloneNode()
+          _cell.setAttribute('data-index', NUM * i + j)
+          _cell.style.backgroundColor = datas[NUM * i + j] === 0 ? '#ccc' : '#000'
+          frag.append(_cell)
+        }
+      }
+      container.append(frag)
+    }
+
+    save.addEventListener('click', () => {
+      localStorage.setItem('map-edit-data', JSON.stringify(datas))
+    })
+    reset.addEventListener('click', () => {
+      localStorage.removeItem('map-edit-data')
+      location.reload()
+    })
+    document.addEventListener('mousedown', (event) => {
+      mousedown = true
+      clear = event.which === 3
+    })
+    document.addEventListener('mouseup', () => {
+      mousedown = false
+    })
+    document.addEventListener('contextmenu', (event) => {
+      event.preventDefault()
+    })
+    draw();
+
+    async function path(map, start, end) {
+      const queue = [start]
+      const tableMap = Object.create(map)
+      const insert = async (x, y, preNode) => {
+        if (x < 0 || x >= NUM || y < 0 || y >= NUM) return
+        if (tableMap[x * NUM + y]) return
+
+        tableMap[x * NUM + y] = preNode
+        container.children[x * NUM + y].style.backgroundColor = 'orange'
+        queue.push([x, y])
+      }
+      while (queue.length) {
+        const [x, y] = queue.shift()
+        if (x === end[0] && y === end[1]) {
+          const p = []
+          p.push([x, y])
+          let [_x, _y] = [x, y]
+          container.children[_x * NUM + _y].style.backgroundColor = 'purple'
+          while (typeof tableMap[_x * NUM + _y] === 'object') {
+            [_x, _y] = tableMap[_x * NUM + _y]
+            p.push([_x, _y])
+            container.children[_x * NUM + _y].style.backgroundColor = 'purple'
+            await delay(10)
+          }
+          return p
+        }
+        
+        await insert(x, y - 1, [x, y]) // 上
+        await insert(x, y + 1, [x, y]) // 下
+        await insert(x - 1, y, [x, y]) // 左
+        await insert(x + 1, y, [x, y]) // 右
+
+        await insert(x - 1, y - 1, [x, y]) // 上
+        await insert(x + 1, y - 1, [x, y]) // 下
+        await insert(x - 1, y + 1, [x, y]) // 左
+        await insert(x + 1, y + 1, [x, y]) // 右
+      }
+      return null
+    }
+    window.map = datas
+    window.path = path
+
+    window.bt = new BinaryHeap((a, b) => b - a)
+    bt.put(43)
+    bt.put(68)
+    bt.put(50)
+    bt.put(38)
+    bt.put(72)
+
+    console.log(bt.toString())
+  </script>
+</body>
+</html>
