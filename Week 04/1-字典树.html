@@ -1,0 +1,46 @@
+<script>
+class Trie {
+  static EOF = Symbol('EOF')
+  constructor() {
+    this.root = Object.create(null)
+  }
+
+  insert(word) {
+    const node = word.split('').reduce((node, ch) => {
+      return node[ch] || (node[ch] = Object.create(null))
+    }, this.root)
+    if (!(Trie.EOF in node)) {
+      node[Trie.EOF] = 0
+    }
+    node[Trie.EOF] ++
+  }
+
+  most() {
+    let max = 0
+    let maxWord = ''
+    const visit = (node, word) => {
+      if (node[Trie.EOF] && node[Trie.EOF] > max) {
+        max = node[Trie.EOF]
+        maxWord = word
+      }
+      for (let p in node) {
+        visit(node[p], word + p)
+      }
+    }
+    visit(this.root, '')
+    return [maxWord, max]
+  }
+}
+
+const randomWord = len => {
+  return Array.from({ length: len }, () => {
+    return String.fromCharCode(~~(Math.random() * 26) + 'a'.charCodeAt(0))
+  }).join('')
+}
+
+const trie = new Trie()
+for (let i = 0; i < 10000; i++) {
+  trie.insert(randomWord(4))
+}
+console.log(trie.most())
+</script>

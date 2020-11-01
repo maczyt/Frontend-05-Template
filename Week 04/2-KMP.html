@@ -1,0 +1,56 @@
+<script>
+  const indexOf = (source, pattern) => {
+    const table = generateTable(pattern)
+    let i = 0, j = 0
+    while (i < source.length) {
+      if (source[i] === pattern[j]) {
+        ++i, ++j;
+      } else {
+        if (j > 0) {
+          j = table[j]
+        } else {
+          ++i
+        }
+      }
+      if (j === pattern.length) {
+        return i - pattern.length
+      }
+    }
+    return -1
+  }
+
+  const generateTable = (str) => {
+    const table = new Array(str.length).fill(0)
+    let i = 1, j = 0
+    while (i < str.length) {
+      if (str[i] === str[j]) {
+        i++;
+        j++;
+        table[i] = j
+      } else {
+        if (j > 0) {
+          j = table[j]
+        } else {
+          i ++
+        }
+      }
+    }
+    return table
+  }
+
+  // a b c d a b c e
+  // 0 0 0 0 0 1 2 3
+  // indexOf('', 'abcdabce')
+
+  // a b a b a b c
+  // 0 0 0 1 2 3 4
+  // indexOf('', 'abababc')
+
+  // a a b a a a c
+  // 0 0 1 0 1 2 2
+  // indexOf('', 'aabaaac')
+
+  console.log(indexOf('hello', 'll'), 'hello'.indexOf('ll'))
+  console.log(indexOf('abcdabce', 'abce'), 'abcdabce'.indexOf('abce'))
+  console.log(indexOf('niubi', 'uxb'), 'niubi'.indexOf('uxb'))
+</script>
