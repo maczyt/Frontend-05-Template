@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vue3的语法实现Vue1</title>
+</head>
+<body>
+  <div id="app">
+    <span v-text="count1"></span> - <button v-on:click="handleClick1">Count1 ++</button>
+    <span v-text="count2"></span> - <button v-on:click="handleClick2">Count2 ++</button>
+    <p>Count1 + Count2 = <span v-text="count1 + count2"></span></p>
+  </div>
+  <script>
+    class Emitter {
+      constructor() {
+        this.callbacksMap = new WeakMap()
+      }
+      on(obj, prop, callback) {
+        if (!this.callbacksMap.has(obj)) {
+          this.callbacksMap.set(obj, new Map())
+        }
+        const _map = this.callbacksMap.get(obj)
+        if (!_map.has(prop)) {
+          _map.set(prop, [])
+        }
+        _map.get(prop).push(callback)
+      }
+      emit(obj, prop) {
+        if (!this.callbacksMap.has(obj)) return;
+        if (!this.callbacksMap.get(obj).has(prop)) return
+        const cbs = this.callbacksMap.get(obj).get(prop)
+        for (let cb of cbs) {
+          cb()
+        }
+      }
+    }
+  </script>
+
+  <script>
+    const reactivityMap = new WeakMap()
+    const emitter = new Emitter()
+    let useReactivities = []
+    function effect(callback) {
+      useReactivities = []
+      callback()
+      for (let useReactivity of useReactivities) {
+        emitter.on(useReactivity[0], useReactivity[1], callback)
+      }
+      useReactivities = []
+    }
+    function reactive(obj) {
+      if (reactivityMap.has(obj)) return reactivityMap.get(obj)
+      return new Proxy(obj, {
+        get(target, prop) {
+          useReactivities.push([target, prop])
+          if (target[prop] && typeof target[prop] === "object") {
+            return reactive(target[prop])
+          }
+          return target[prop]
+        },
+        set(target, prop, value) {
+          // emit
+          target[prop] = value
+          emitter.emit(target, prop)
+        }
+      })
+    }
+  </script>
+
+  <script>
+    function get(obj, path) {
+      path = path.replace(/^\[/, '').replace(/\[/g, '.').replace(/\]/g, '')
+      return path.split('.').reduce((o, p) => o[p], obj)
+    }
+    // 简易版词法分析
+    function analyse(str) {
+      return str.replace(/[a-zA-Z_$][a-zA-Z_$1-9]*/g, ($0) => {
+        return `this.${$0}`
+      })
+    }
+
+    class MVVM {
+      static createApp(app) {
+        const instance = reactive(app.data())
+        const methods = {}
+        Object.entries(app.methods).forEach(([name, method]) => {
+          methods[name] = method.bind(instance)
+        })
+        return {
+          mount(selector) {
+            const dom = document.querySelector(selector)
+            // dfs
+            const directive = (node, direact) => {
+              if (direact === 'v-text') {
+                effect(() => {
+                  node.textContent = (new Function(`return ${analyse(node.getAttribute(direact))}`)).call(instance)
+                })
+              } else if (direact === 'v-on:click') {
+                node.addEventListener('click', methods[node.getAttribute(direact)])
+              }
+            }
+            const visit = (node) => {
+              const attributeNames = node.getAttributeNames()
+              for (let attribute of attributeNames) {
+                directive(node, attribute)
+              }
+              for (let child of node.children) {
+                visit(child)
+              }
+            }
+            visit(dom)
+            
+          }
+        }
+      }
+    }
+
+  </script>
+
+  <script>
+    const app = {
+      data() {
+        return {
+          count1: 1,
+          count2: 1,
+        }
+      },
+      methods: {
+        handleClick1() {
+          this.count1 ++
+        },
+        handleClick2() {
+          this.count2 ++
+        }
+      }
+    }
+
+    MVVM.createApp(app).mount('#app')
+  </script>
+</body>
+</html>
