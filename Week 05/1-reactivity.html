@@ -1,0 +1,68 @@
+<input type="range" id="r" min=0 max=255>
+<input type="range" id="g" min=0 max=255>
+<input type="range" id="b" min=0 max=255>
+<div id="box" style="width: 100px;height: 100px;"></div>
+
+<script>
+  let useReactivity = []
+  let reactiveObj = new WeakMap()
+  const reactivitys = new Map()
+  function effect(callback) {
+    useReactivity = []
+    callback()
+    for (let reactivity of useReactivity) {
+      if (!reactivitys.has(reactivity[0])) {
+        reactivitys.set(reactivity[0], new Map())
+      }
+      if (!reactivitys.get(reactivity[0]).has(reactivity[1])) {
+        reactivitys.get(reactivity[0]).set(reactivity[1], [])
+      }
+      reactivitys.get(reactivity[0]).get(reactivity[1]).push(callback)
+    }
+    useReactivity = []
+  }
+
+  function reactive(obj) {
+    if (reactiveObj.has(obj)) {
+      return reactiveObj.get(obj)
+    }
+    return new Proxy(obj, {
+      get(target, prop) {
+        useReactivity.push([obj, prop])
+        if (typeof target[prop] === 'object') {
+          return reactive(target[prop])
+        }
+        return target[prop]
+      },
+      set(target, prop, value) {
+        target[prop] = value
+        if (reactivitys.has(target)) {
+          if (reactivitys.get(target).has(prop)) {
+            for (let callback of reactivitys.get(target).get(prop)) {
+              callback()
+            }
+          }
+        }
+      }
+    })
+  }
+
+  const obj = {
+    r: { value: 0 },
+    g: 0,
+    b: 0,
+  }
+  const po = reactive(obj)
+
+  document.getElementById('r').addEventListener('change', event => po.r.value = event.target.value)
+  document.getElementById('g').addEventListener('change', event => po.g = event.target.value)
+  document.getElementById('b').addEventListener('change', event => po.b = event.target.value)
+  effect(() => {
+    document.getElementById('r').value = po.r.value
+    document.getElementById('g').value = po.g
+    document.getElementById('b').value = po.b
+  })
+  effect(() => {
+    document.getElementById('box').style.backgroundColor = `rgb(${po.r.value}, ${po.g}, ${po.b})`
+  })
+</script>

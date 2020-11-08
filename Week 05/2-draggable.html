@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Draggable</title>
+  <style>
+    #draggable {
+      width: 80px;
+      height: 80px;
+      background-color: blueviolet;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+  <div id="content"></div>
+  <div id="draggable"></div>
+
+  <script>
+    document.addEventListener('selectstart', event => event.preventDefault())
+    let content = document.getElementById('content')
+    content.innerHTML = '油条 '.repeat(500)
+  </script>
+  <script>
+    let ranges = []
+    for (let i = 0; i < content.childNodes[0].textContent.length; i ++) {
+      let range = document.createRange()
+      range.setStart(content.childNodes[0], i)
+      range.setEnd(content.childNodes[0], i)
+      ranges.push(range)
+    }
+    function getNearest(x, y) {
+      let min = Infinity
+      let nearest = null
+      for (let range of ranges) {
+        let rect = range.getBoundingClientRect()
+        let distance = Math.pow(rect.x - x, 2) + Math.pow(rect.y - y, 2)
+        if (distance < min) {
+          nearest = range
+          min = distance
+        }
+      }
+      return nearest
+    } 
+  </script>
+  <script>
+    let draggable = document.getElementById('draggable')
+    let baseX = 0, baseY = 0
+    draggable.addEventListener('mousedown', event => {
+      let startX = event.clientX
+      let startY = event.clientY
+      const move = (event) => {
+        // 如果加上这句，在计算nearest的时候，页面会比较卡顿
+        // draggable.style.transform = `translate(${baseX + event.clientX - startX}px, ${baseY + event.clientY - startY}px)`
+        // Range
+        const range = getNearest(event.clientX, event.clientY)
+        range.insertNode(draggable)
+      }
+      const up = (event) => {
+        baseX = baseX + event.clientX - startX
+        baseY = baseY + event.clientY - startY
+        document.removeEventListener('mouseup', up)
+        document.removeEventListener('mousemove', move)
+      }
+      document.addEventListener('mousemove', move)
+      document.addEventListener('mouseup', up)
+    })
+
+    
+
+  </script>
+</body>
+</html>
