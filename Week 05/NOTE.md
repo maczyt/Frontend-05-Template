@@ -9,3 +9,7 @@
 ## Draggable
 
 ** 拖拽元素的 `mousedown`，`document` 的 `mousemove` 和 `mouseup`
+
+## MVVM
+
+听课听的灵光一现，写了一个超简易版的[MVVM](./3-mvvm.html)
