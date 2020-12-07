@@ -1,5 +1,4 @@
 const StateMachine = require('javascript-state-machine')
-const EOF = Symbol('EOF')
 
 class Stack {
   constructor() {
@@ -14,29 +13,46 @@ class Stack {
     return this.data.pop()
   }
 
+  peek() {
+    return this.data[this.data.length - 1]
+  }
+
 }
-const stack = new Stack()
-let str = ''
-stack.push({ 
-  tagName: 'document',
-  children: [],
-})
+
 const fsm = new StateMachine({
   init: 'data',
   data: (content = '') => {
+    const stack = new Stack()
+    stack.push({ 
+      tagName: 'document',
+      children: [],
+    })
     return {
       content,
+      stack,
+      attributeName: '',
+      attributeValue: '',
     }
   },
   transitions: [
+    {
+      name: 'makeData',
+      from: '*',
+      to: 'data',
+    },
     {
       name: 'makeElement',
       from: 'data',
       to: 'tagOpen',
     },
     {
+      name: 'makeElementEnd',
+      from: 'tagOpen',
+      to: 'tagEnd',
+    },
+    {
       name: 'makeAttributeName',
-      from: ['tagOpen', 'attributeName', 'makeAttributeValue'],
+      from: ['tagOpen', 'attributeName', 'attributeValue'],
       to: 'attributeName'
     },
     {
@@ -46,135 +62,75 @@ const fsm = new StateMachine({
     }
   ],
   methods: {
-    onMakeAttributeName(...args) {
-      console.log('args', args)
-    },
-    onTransition: function({
-      transition,
-      from,
-      to,
-    }) {
-      console.log('ff', transition)
+    onMakeData({ from }) {
       if (from === 'tagOpen') {
-        stack.push({
+        this.stack.push({
           tagName: this.content,
           children: [],
           attributes: {},
         })
         this.content = ''
-        return
       }
-    }
+      if (from === 'tagEnd') {
+        const token = this.stack.pop()
+        if (this.content !== token.tagName) {
+          throw new TypeError('标签不匹配')
+        }
+        currentToken = this.stack.peek()
+        currentToken.children = currentToken.children || []
+        currentToken.children.push(token)
+        this.content = ''
+      }
+      // 判断单标签元素
+      if (['attributeName', 'tagOpen'].includes(from)) {
+        let currentToken = this.stack.peek()
+        const singles = [
+          'meta', 'br', 'hr', 'img',
+          'input', 'param', 'link'
+        ]
+        if (singles.includes(currentToken.tagName)) {
+          const token = this.stack.pop()
+          currentToken = this.stack.peek()
+          currentToken.children = currentToken.children || []
+          currentToken.children.push(token)
+        }
+      }
+    },
+    onMakeElement() {
+      if (this.content) {
+        const currentToken = this.stack.peek()
+        currentToken.children = currentToken.children || []
+        currentToken.children.push({
+          type: 'text',
+          content: this.content,
+        })
+        this.content = ''
+      }
+    },
+    onMakeAttributeName({ from, }) {
+      if (from === 'tagOpen') {
+        this.stack.push({
+          tagName: this.content,
+          children: [],
+          attributes: {},
+        })
+        this.content = ''
+      } else if (
+        from === 'attributeName' ||
+        from === 'attributeValue'
+      ) {
+        const currentToken = this.stack.peek()
+        currentToken.attributes = currentToken.attributes || {}
+        const name = this.attributeName.trim()
+        if (name) {
+          const value = this.attributeValue === '' ? true : this.attributeValue
+          currentToken.attributes[name] = value
+        }
+        this.attributeName = this.attributeValue = ''
+      }
+    },
   }
 })
-
-let currentToken = null
-
-function data(c) {
-  if (c === '<') {
-    return tagOpen
-  } else if (c === EOF) {
-    emit({
-      type: 'EOF'
-    })
-    return 
-  } else {
-    emit({
-      type: 'text',
-      content: c
-    })
-    return data
-  }
-}
-
-// 开始标签
-function tagOpen(c) {
-  if (c === '/') {
-    return endTagOpen
-  } else if (c.match(/^[a-zA-Z]$/)) {
-    currentToken = {
-      type: 'startTag',
-      tagName: '',
-    }
-    return tagName(c)
-  } else {
-    return
-  }
-}
-// 结束标签
-function endTagOpen(c) {
-  if (c.match(/^[a-zA-Z]$/)) {
-    currentToken = {
-      type: 'endTag',
-      tagName: '',
-    }
-    return tagName(c)
-  } else if (c === '>') {
-    
-  } else if (c === EOF) {
-
-  } else {
-
-  }
-}
-// 标签名
-function tagName(c) {
-  if (c.match(/^[\t\n\f ]$/)) {
-    emit(currentToken)
-    currentToken = {
-      type: 'attribute',
-      content: '',
-    }
-    return beforeAttributeName
-  } else if (c === '/') {
-    return selfCloseStartTag
-  } else if (c.match(/^[a-zA-Z]$/)) {
-    currentToken.tagName += c
-    return tagName
-  } else if (c === '>') {
-    emit(currentToken)
-    return data
-  } else {
-    return tagName
-  }
-}
-
-function beforeAttributeName(c) {
-  if (c.match(/^[\t\n\f ]$/)) {
-    currentToken.content += c
-    return beforeAttributeName
-  } else if (c === '>') {
-    emit(currentToken)
-    return data
-  } else if (c === '=') {
-    currentToken.content += c
-    return beforeAttributeName
-  } else {
-    currentToken.content += c
-    return beforeAttributeName
-  }
-}
-
-function selfCloseStartTag(c) {
-  if (c === '>') {
-    currentToken.isSelfClosing = true
-    return data
-  } else if (c === EOF) {
-
-  } else {
-
-  }
-}
-
-function parser(html) {
-  let state = data
-  for (let c of html) {
-    // switch
-    state = state(c)
-    // console.log(fsm.state)
-  }
-  console.log(fsm.content, fsm)
-}
 
 function data(c) {
   if (c === '<') {
@@ -193,10 +149,28 @@ function tagOpen(c) {
   } else if (c.match(/^[\t\r\n ]$/)) {
     fsm.makeAttributeName()
     return attributeName
+  } else if (c === '>')  {
+    fsm.makeData()
+    return data
+  } else if (c === '/') {
+    fsm.makeElementEnd()
+    return tagEnd
   } else if (c === '!') {
     throw new Error('不支持注释节点')
   } else {
     throw new TypeError(`错误的字符: ${c}`)
+  }
+}
+
+function tagEnd(c) {
+  if (c === '>') {
+    fsm.makeData()
+    return data
+  } else if (c.match(/^[\t\r\n ]$/)) {
+    throw new TypeError(`错误的字符: ${c}`)
+  } else {
+    fsm.content += c
+    return tagEnd
   }
 }
 
@@ -205,12 +179,13 @@ function attributeName(c) {
     fsm.makeAttributeValue()
     return attributeValue
   } else if (c.match(/^[\t\r\n ]$/)) {
-    fsm.makeAttribute()
+    fsm.makeAttributeName()
     return attributeName
   } else if (c === '>') {
-
+    fsm.makeData()
+    return data
   } else {
-    fsm.content += c
+    fsm.attributeName += c
     return attributeName
   }
 }
@@ -227,7 +202,7 @@ function singleQuoteValue(c) {
     fsm.makeAttributeName()
     return attributeName
   } else {
-    fsm.content += c
+    fsm.attributeValue += c
     return singleQuoteValue
   }
 }
@@ -236,10 +211,19 @@ function doubleQuoteValue(c) {
     fsm.makeAttributeName()
     return attributeName
   } else {
-    fsm.content += c
+    fsm.attributeValue += c
     return doubleQuoteValue
   }
 }
 
-// WIP
+function parser(html) {
+  let state = data
+  for (let c of html) {
+    state = state(c)
+  }
+  console.log(JSON.stringify(fsm.stack.peek(), null, 2))
+
+  return fsm.stack.peek()
+}
+
 module.exports = parser
