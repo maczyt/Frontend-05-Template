@@ -195,6 +195,8 @@ function attributeValue(c) {
     return doubleQuoteValue
   } else if (c === "'") {
     return singleQuoteValue
+  } else {
+    throw new TypeError('属性值应该包裹在""或\'\'中')
   }
 }
 function singleQuoteValue(c) {
